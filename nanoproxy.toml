@@ -1,6 +1,14 @@
 listen_port = 9000
-log = "RUST_LOG=info,simple_mdns=off,nanoproxy=trace"
+log = "info,simple_mdns=off,nanoproxy=trace"
+
+[management]
+enabled = true
+host_name = "nanoproxy"
 
 [[services]]
 host_name = "directories"
 upstream_address = "http://localhost:8000"
+
+[[services]]
+host_name = "grafana"
+upstream_address = "http://octopi.local:3000"

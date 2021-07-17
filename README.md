@@ -28,6 +28,13 @@ You can then run `nanoproxy`, it will load the config file and you can navigate
 to `http://prometheus.local` or `http://grafana.local` in a web browser from any
 computer on your network.
 
+## Management interface
+
+You can optionally enable a management interface by setting `management.enabled = true` in your config file. This will cause a service to be advertised at
+`http://nanoproxy.local:{listen_port}` which can be used to view all of the available nanoproxy
+services. You can change this advertised hostname by setting
+`management.host_name`
+
 ## Goals
 
 - Ease-of-use

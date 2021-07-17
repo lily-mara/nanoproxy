@@ -6,7 +6,7 @@ use actix_web::{
 use awc::{error::SendRequestError, Client};
 use tracing::error;
 
-use crate::config::Config;
+use crate::config::{Config, SharedConfig};
 
 #[derive(thiserror::Error, Debug)]
 enum ServerError {
@@ -28,22 +28,29 @@ enum ServerError {
 
 impl ResponseError for ServerError {}
 
-pub async fn run(config: Config) -> anyhow::Result<()> {
+pub async fn run(config: SharedConfig) -> anyhow::Result<()> {
+    let addr = {
+        let config = config.read().unwrap();
+        format!("{}:{}", config.listen_host, config.listen_port)
+    };
+
+    let config = web::Data::new(config);
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(Client::new()))
-            .app_data(web::Data::new(crate::config::load()))
+            .app_data(config.clone())
             .wrap(middleware::Logger::default())
             .default_service(web::route().to(forward))
     })
-    .bind(format!("{}:{}", config.listen_host, config.listen_port))?
+    .bind(addr)?
     .run()
     .await?;
 
     Ok(())
 }
 
-fn find_upstream_addr(req: &HttpRequest, config: web::Data<Config>) -> Result<String, ServerError> {
+fn find_upstream_addr(req: &HttpRequest, config: &Config) -> Result<String, ServerError> {
     let host = String::from_utf8_lossy(
         req.headers()
             .get("host")
@@ -64,15 +71,19 @@ async fn forward(
     req: HttpRequest,
     body: web::Bytes,
     client: web::Data<Client>,
-    config: web::Data<Config>,
+    config: web::Data<SharedConfig>,
 ) -> Result<HttpResponse, ServerError> {
-    let mut uri = find_upstream_addr(&req, config)?;
+    let mut upstream = {
+        let config = config.read().unwrap();
+
+        find_upstream_addr(&req, &*config)?
+    };
 
     if let Some(path_and_query) = req.uri().path_and_query() {
-        uri.push_str(path_and_query.as_str());
+        upstream.push_str(path_and_query.as_str());
     }
 
-    let new_uri: Uri = uri.parse()?;
+    let new_uri: Uri = upstream.parse()?;
 
     // TODO: This forwarded implementation is incomplete as it only handles the inofficial
     // X-Forwarded-For header but not the official Forwarded one.

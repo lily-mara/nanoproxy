@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nanoproxy</title>
+  </head>
+  <body>
+    <h1>Nanoproxy Services</h1>
+    <ul>
+      {% for service in services %}
+      <li>
+        <a href="http://{{service}}.local:{{listen_port}}">{{service}}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>

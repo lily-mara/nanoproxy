@@ -3,7 +3,7 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 use anyhow::Context;
 use if_addrs::IfAddr;
 use simple_mdns::ServiceDiscovery;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::config::Config;
 
@@ -11,10 +11,7 @@ pub fn advertise(config: &crate::config::Config) -> anyhow::Result<()> {
     let interfaces = if_addrs::get_if_addrs()?;
 
     for service in &config.services {
-        if let Err(e) = spawn_service(&config, service, &interfaces) {
-            let e: &dyn std::error::Error = &*e;
-            warn!(error = e, "Error spawning service");
-        }
+        spawn_service(&config, &service.host_name, &interfaces)?;
     }
 
     Ok(())
@@ -22,12 +19,12 @@ pub fn advertise(config: &crate::config::Config) -> anyhow::Result<()> {
 
 fn spawn_service(
     config: &Config,
-    service: &crate::config::Service,
+    host_name: &str,
     interfaces: &[if_addrs::Interface],
 ) -> anyhow::Result<()> {
-    let service_name = Box::leak(Box::new(format!("{}.local", service.host_name)));
+    let service_name = Box::leak(Box::new(format!("{}.local", host_name)));
 
-    debug!(%service_name, upstream_address = %service.upstream_address, "spawning service");
+    debug!(%service_name, "spawning service");
 
     let mut discovery = ServiceDiscovery::new(service_name, 60)
         .with_context(|| format!("failed to spawn service with name {:?}", service_name))?;
