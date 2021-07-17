@@ -1,0 +1,6 @@
+listen_port = 9000
+log = "RUST_LOG=info,simple_mdns=off,nanoproxy=trace"
+
+[[services]]
+host_name = "directories"
+upstream_address = "http://localhost:8000"

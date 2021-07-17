@@ -1,0 +1,18 @@
+[package]
+name = "nanoproxy"
+version = "0.1.0"
+authors = ["Lily Mara <lilymara@fastmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1"
+tracing = "0.1"
+tracing-log = "0.1"
+tracing-subscriber = "0.2"
+simple-mdns = "0.2"
+config = { version = "0.11", features = ["toml"] }
+actix-web = "4.0.0-beta.8"
+awc = "3.0.0-beta.7"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+if-addrs = "0.6"
