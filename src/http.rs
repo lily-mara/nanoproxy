@@ -83,7 +83,7 @@ async fn forward(
         forwarded_req
     };
 
-    let mut res = forwarded_req.send_body(body).await?;
+    let res = forwarded_req.send_body(body).await?;
 
     let mut client_resp = HttpResponse::build(res.status());
     // Remove `Connection` as per
@@ -96,5 +96,5 @@ async fn forward(
         client_resp.append_header((header_name.clone(), header_value.clone()));
     }
 
-    Ok(client_resp.body(res.body().await?))
+    Ok(client_resp.streaming(res))
 }
