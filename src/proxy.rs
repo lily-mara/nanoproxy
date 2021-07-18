@@ -13,7 +13,7 @@ enum ServerError {
     #[error("failed to write HTTP response body")]
     PayloadError(#[from] PayloadError),
 
-    #[error("failed to send HTTP request to upstream")]
+    #[error("failed to send HTTP request body to upstream")]
     SendRequestError(#[from] SendRequestError),
 
     #[error("failed to construct proxy URI")]
@@ -46,7 +46,9 @@ pub async fn run(config: SharedConfig) -> anyhow::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(Client::new()))
+            .app_data(web::Data::new(
+                Client::builder().disable_redirects().finish(),
+            ))
             .app_data(config.clone())
             .wrap(middleware::Logger::default())
             .default_service(web::route().to(forward))
@@ -104,7 +106,7 @@ async fn forward(
         forwarded_req
     };
 
-    let mut res = forwarded_req.send_body(body).await?;
+    let res = forwarded_req.send_body(body).await?;
 
     let mut client_resp = HttpResponse::build(res.status());
     // Remove `Connection` as per
@@ -117,7 +119,5 @@ async fn forward(
         client_resp.append_header((header_name.clone(), header_value.clone()));
     }
 
-    let body = res.body().await?;
-
-    Ok(client_resp.body(body))
+    Ok(client_resp.streaming(res))
 }
