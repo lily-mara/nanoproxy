@@ -8,6 +8,7 @@ use tracing::{debug, error, info};
 use crate::config::Service;
 
 mod config;
+mod error;
 mod management;
 mod mdns;
 mod proxy;

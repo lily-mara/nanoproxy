@@ -2,9 +2,7 @@ use std::net::TcpListener;
 use tera::{Context, Tera};
 
 use actix_web::{
-    get,
-    http::header::{self, ContentType},
-    middleware, web, App, HttpResponse, HttpServer, ResponseError,
+    get, http::header::ContentType, middleware, web, App, HttpResponse, HttpServer, ResponseError,
 };
 
 use crate::config::SharedConfig;
@@ -21,20 +19,7 @@ impl ResponseError for ManagementError {
     }
 
     fn error_response(&self) -> actix_web::HttpResponse {
-        let mut res = actix_web::HttpResponse::new(self.status_code());
-
-        res.headers_mut().insert(
-            header::CONTENT_TYPE,
-            header::HeaderValue::from_static("text/plain; charset=utf-8"),
-        );
-
-        let mut body = String::new();
-
-        for c in anyhow::Chain::new(self) {
-            body.push_str(&format!("{}\n", c));
-        }
-
-        res.set_body(body.into())
+        crate::error::response(self, self.status_code())
     }
 }
 

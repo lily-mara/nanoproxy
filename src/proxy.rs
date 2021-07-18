@@ -4,7 +4,7 @@ use actix_web::{
     middleware, web, App, HttpRequest, HttpResponse, HttpServer, ResponseError,
 };
 use awc::{error::SendRequestError, Client};
-use tracing::error;
+use tracing::{error, trace};
 
 use crate::config::{Config, SharedConfig};
 
@@ -26,7 +26,15 @@ enum ServerError {
     UnknownHost(String),
 }
 
-impl ResponseError for ServerError {}
+impl ResponseError for ServerError {
+    fn error_response(&self) -> HttpResponse {
+        crate::error::response(self, self.status_code())
+    }
+
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
 
 pub async fn run(config: SharedConfig) -> anyhow::Result<()> {
     let addr = {
@@ -83,16 +91,18 @@ async fn forward(
         upstream.push_str(path_and_query.as_str());
     }
 
-    let new_uri: Uri = upstream.parse()?;
+    let uri: Uri = upstream.parse()?;
 
     // TODO: This forwarded implementation is incomplete as it only handles the inofficial
     // X-Forwarded-For header but not the official Forwarded one.
-    let forwarded_req = client.request_from(new_uri, req.head()).no_decompress();
+    let forwarded_req = client.request_from(uri.clone(), req.head()).no_decompress();
     let forwarded_req = if let Some(addr) = req.head().peer_addr {
         forwarded_req.append_header(("x-forwarded-for", format!("{}", addr.ip())))
     } else {
         forwarded_req
     };
+
+    trace!(?uri, headers = ?forwarded_req.headers(), "sending request to upstream");
 
     let res = forwarded_req.send_body(body).await?;
 
