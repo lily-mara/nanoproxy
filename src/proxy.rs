@@ -93,18 +93,18 @@ async fn forward(
 
     let uri: Uri = upstream.parse()?;
 
+    trace!(?uri, "sending request to upstream");
+
     // TODO: This forwarded implementation is incomplete as it only handles the inofficial
     // X-Forwarded-For header but not the official Forwarded one.
-    let forwarded_req = client.request_from(uri.clone(), req.head()).no_decompress();
+    let forwarded_req = client.request_from(uri, req.head()).no_decompress();
     let forwarded_req = if let Some(addr) = req.head().peer_addr {
         forwarded_req.append_header(("x-forwarded-for", format!("{}", addr.ip())))
     } else {
         forwarded_req
     };
 
-    trace!(?uri, headers = ?forwarded_req.headers(), "sending request to upstream");
-
-    let res = forwarded_req.send_body(body).await?;
+    let mut res = forwarded_req.send_body(body).await?;
 
     let mut client_resp = HttpResponse::build(res.status());
     // Remove `Connection` as per
@@ -117,5 +117,7 @@ async fn forward(
         client_resp.append_header((header_name.clone(), header_value.clone()));
     }
 
-    Ok(client_resp.streaming(res))
+    let body = res.body().await?;
+
+    Ok(client_resp.body(body))
 }
