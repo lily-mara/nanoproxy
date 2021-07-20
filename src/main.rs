@@ -13,6 +13,9 @@ mod management;
 mod mdns;
 mod proxy;
 
+#[cfg(test)]
+mod tests;
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let config = crate::config::load();

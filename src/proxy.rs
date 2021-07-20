@@ -1,7 +1,9 @@
 use actix_web::{
     error::PayloadError,
     http::{uri::InvalidUri, Uri},
-    middleware, web, App, HttpRequest, HttpResponse, HttpServer, ResponseError,
+    middleware,
+    web::{self, ServiceConfig},
+    App, HttpRequest, HttpResponse, HttpServer, ResponseError,
 };
 use awc::{error::SendRequestError, Client};
 use tracing::{error, trace};
@@ -36,6 +38,17 @@ impl ResponseError for ServerError {
     }
 }
 
+pub fn configure_app(config: web::Data<SharedConfig>) -> impl FnOnce(&mut ServiceConfig) {
+    move |svc_config| {
+        svc_config
+            .default_service(web::route().to(forward))
+            .app_data(web::Data::new(
+                Client::builder().disable_redirects().finish(),
+            ))
+            .app_data(config);
+    }
+}
+
 pub async fn run(config: SharedConfig) -> anyhow::Result<()> {
     let addr = {
         let config = config.read().unwrap();
@@ -46,12 +59,8 @@ pub async fn run(config: SharedConfig) -> anyhow::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(
-                Client::builder().disable_redirects().finish(),
-            ))
-            .app_data(config.clone())
+            .configure(configure_app(config.clone()))
             .wrap(middleware::Logger::default())
-            .default_service(web::route().to(forward))
     })
     .bind(addr)?
     .run()

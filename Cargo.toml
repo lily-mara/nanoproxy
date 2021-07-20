@@ -5,16 +5,26 @@ authors = ["Lily Mara <lilymara@fastmail.com>"]
 edition = "2018"
 
 [dependencies]
+actix-web = "4.0.0-beta.8"
 anyhow = "1"
+awc = "3.0.0-beta.7"
+config = { version = "0.11", features = ["toml"] }
+futures = "0.3"
+if-addrs = "0.6"
+serde = { version = "1", features = ["derive"] }
+simple-mdns = "0.2"
+tera = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-log = "0.1"
 tracing-subscriber = "0.2"
-simple-mdns = "0.2"
-config = { version = "0.11", features = ["toml"] }
-actix-web = "4.0.0-beta.8"
-tokio = { version = "1", features = ["full"] }
-awc = "3.0.0-beta.7"
-thiserror = "1"
-serde = { version = "1", features = ["derive"] }
-if-addrs = "0.6"
-tera = "1"
+
+[dev-dependencies]
+actix-http = "3.0.0-beta.8"
+actix-rt = "2"
+wiremock = "0.5"
+
+[patch.crates-io]
+# Currently blocked on my PR being merged https://github.com/actix/actix-web/pull/2338
+actix-web = { git = "https://github.com/lily-mara/actix-web.git", branch = "ServiceConfig-default-service" }
