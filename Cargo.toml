@@ -5,7 +5,11 @@ authors = ["Lily Mara <lilymara@fastmail.com>"]
 edition = "2018"
 
 [dependencies]
+actix = "0.12"
+actix-codec = "0.4"
+actix-http = "3.0.0-beta.8"
 actix-web = "4.0.0-beta.8"
+actix-web-actors = "4.0.0-beta.6"
 anyhow = "1"
 awc = "3.0.0-beta.7"
 config = { version = "0.11", features = ["toml"] }
@@ -21,7 +25,6 @@ tracing-log = "0.1"
 tracing-subscriber = "0.2"
 
 [dev-dependencies]
-actix-http = "3.0.0-beta.8"
 actix-rt = "2"
 wiremock = "0.5"
 

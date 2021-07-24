@@ -1,3 +1,4 @@
+use actix_http::ConnectionType;
 use actix_web::{
     error::PayloadError,
     http::{uri::InvalidUri, Uri},
@@ -9,6 +10,8 @@ use awc::{error::SendRequestError, Client};
 use tracing::{error, trace};
 
 use crate::config::{Config, SharedConfig};
+
+mod ws;
 
 #[derive(thiserror::Error, Debug)]
 enum ServerError {
@@ -24,8 +27,14 @@ enum ServerError {
     #[error("request missing host header")]
     MissingHost,
 
-    #[error("got request for unknown host: {0}")]
+    #[error("got reuest for unknown host: {0}")]
     UnknownHost(String),
+
+    #[error("error beginning websocket connection with upstream")]
+    WebsocketUpstreamHandshake(awc::error::WsClientError),
+
+    #[error("error beginning websocket connection with client")]
+    WebsocketClientHandshake(actix_web::Error),
 }
 
 impl ResponseError for ServerError {
@@ -88,9 +97,10 @@ fn find_upstream_addr(req: &HttpRequest, config: &Config) -> Result<String, Serv
 
 async fn forward(
     req: HttpRequest,
-    body: web::Bytes,
+    // body: web::Bytes,
     client: web::Data<Client>,
     config: web::Data<SharedConfig>,
+    stream: web::Payload,
 ) -> Result<HttpResponse, ServerError> {
     let mut upstream = {
         let config = config.read().unwrap();
@@ -104,6 +114,10 @@ async fn forward(
 
     let uri: Uri = upstream.parse()?;
 
+    if req.head().connection_type() == ConnectionType::Upgrade {
+        return ws::begin(req, uri, &*client, &*config, stream).await;
+    }
+
     trace!(?uri, "sending request to upstream");
 
     // TODO: This forwarded implementation is incomplete as it only handles the inofficial
@@ -115,7 +129,7 @@ async fn forward(
         forwarded_req
     };
 
-    let res = forwarded_req.send_body(body).await?;
+    let res = forwarded_req.send_stream(stream).await?;
 
     let mut client_resp = HttpResponse::build(res.status());
     // Remove `Connection` as per

@@ -10,5 +10,9 @@ host_name = "directories"
 upstream_address = "http://localhost:8000"
 
 [[services]]
+host_name = "socks"
+upstream_address = "http://localhost:8080"
+
+[[services]]
 host_name = "grafana"
 upstream_address = "http://octopi.local:3000"
